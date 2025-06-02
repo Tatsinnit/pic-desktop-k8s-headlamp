@@ -1,0 +1,104 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: headlamp
+  namespace: kube-system
+spec:
+  ports:
+    - port: 80
+      targetPort: 4466
+  selector:
+    k8s-app: headlamp
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: headlamp-plugins
+  namespace: kube-system
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: headlamp
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: headlamp
+  template:
+    metadata:
+      labels:
+        k8s-app: headlamp
+    spec:
+      initContainers:
+        - name: "headlamp-plugins"
+          image: ttl.sh/pic-desktop-k8s-headlamp
+          imagePullPolicy: Always
+          command:
+            - "/bin/sh"
+            - "-c"
+            - "mkdir -p /headlamp/plugins/aks && cp -r /plugins/* /headlamp/plugins/aks"
+          volumeMounts:
+            - name: "headlamp-plugins"
+              mountPath: "/headlamp/plugins"
+      containers:
+        - name: headlamp
+          image: ghcr.io/headlamp-k8s/headlamp:latest
+          args:
+            - "-in-cluster"
+            - "-plugins-dir=/headlamp/plugins"
+          env:
+            - name: HEADLAMP_CONFIG_TRACING_ENABLED
+              value: "true"
+            - name: HEADLAMP_CONFIG_METRICS_ENABLED
+              value: "true"
+            - name: HEADLAMP_CONFIG_OTLP_ENDPOINT
+              value: "otel-collector:4317"
+            - name: HEADLAMP_CONFIG_SERVICE_NAME
+              value: "headlamp"
+            - name: HEADLAMP_CONFIG_SERVICE_VERSION
+              value: "latest"
+          ports:
+            - containerPort: 4466
+              name: http
+            - containerPort: 9090
+              name: metrics
+          volumeMounts:
+            - name: "headlamp-plugins"
+              mountPath: "/headlamp/plugins"
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /
+              port: 4466
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+          livenessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /
+              port: 4466
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+      volumes:
+        - name: "headlamp-plugins"
+          persistentVolumeClaim:
+            claimName: headlamp-plugins
+      nodeSelector:
+        'kubernetes.io/os': linux
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: headlamp-admin
+  namespace: kube-system
+  annotations:
+    kubernetes.io/service-account.name: "headlamp-admin"
+type: kubernetes.io/service-account-token
