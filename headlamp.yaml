@@ -9,18 +9,18 @@ spec:
       targetPort: 4466
   selector:
     k8s-app: headlamp
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: headlamp-plugins
-  namespace: kube-system
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 1Gi
+# ---
+# kind: PersistentVolumeClaim
+# apiVersion: v1
+# metadata:
+#   name: headlamp-plugins
+#   namespace: kube-system
+# spec:
+#   accessModes:
+#     - ReadWriteMany
+#   resources:
+#     requests:
+#       storage: 1Gi
 ---
 kind: Deployment
 apiVersion: apps/v1
@@ -70,9 +70,9 @@ spec:
               name: http
             - containerPort: 9090
               name: metrics
-          volumeMounts:
-            - name: "headlamp-plugins"
-              mountPath: "/headlamp/plugins"
+          # volumeMounts:
+          #   - name: "headlamp-plugins"
+          #     mountPath: "/headlamp/plugins"
           readinessProbe:
             httpGet:
               scheme: HTTP
@@ -87,10 +87,10 @@ spec:
               port: 4466
             initialDelaySeconds: 30
             timeoutSeconds: 30
-      volumes:
-        - name: "headlamp-plugins"
-          persistentVolumeClaim:
-            claimName: headlamp-plugins
+      # volumes:
+      #   - name: "headlamp-plugins"
+      #     persistentVolumeClaim:
+      #       claimName: headlamp-plugins
       nodeSelector:
         'kubernetes.io/os': linux
 ---
