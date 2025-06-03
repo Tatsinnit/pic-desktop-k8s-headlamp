@@ -15,7 +15,7 @@ RUN echo "Installing dependencies..."; \
 FROM ghcr.io/headlamp-k8s/headlamp:latest
 
 # Copy plugins into the Headlamp plugins directory
-COPY --from=builder /build/ /headlamp/plugins/
+COPY --from=builder /build/ /headlamp/plugins/aks
 
 # (Optional) Set permissions if needed
 USER root
