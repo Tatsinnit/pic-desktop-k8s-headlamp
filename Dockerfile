@@ -12,23 +12,14 @@ RUN echo "Installing dependencies..."; \
     echo "Extracting plugin..."; \
     npx --no-install headlamp-plugin extract . /build/
 
-FROM alpine:3.20.3@sha256:beefdbd8a1da6d2915566fde36db9db0b524eb737fc57cd1367effd16dc0d06d
+FROM ghcr.io/headlamp-k8s/headlamp:latest
 
-# Create a non-root user and group
-RUN addgroup -S headlamp && adduser -S headlamp -G headlamp
+# Copy plugins into the Headlamp plugins directory
+COPY --from=builder /build/ /headlamp/plugins/
 
-# Copy the built plugin files from the builder stage to the /plugins directory in the final image
-COPY --from=builder /build/ /plugins/
-
-# Set appropriate permissions for the plugins directory
-RUN chown -R headlamp:headlamp /plugins && \
-    chmod -R 755 /plugins
-
-LABEL org.opencontainers.image.source=https://github.com/headlamp-k8s/plugins
-LABEL org.opencontainers.image.licenses=MIT
-
-# Switch to non-root user
+# (Optional) Set permissions if needed
+USER root
+RUN chown -R headlamp:headlamp /headlamp/plugins
 USER headlamp
 
-# Set the default command to list the installed plugins
-CMD ["sh", "-c", "echo Plugins installed at /plugins/:; ls /plugins/"]
+# The default CMD from the Headlamp image will be used

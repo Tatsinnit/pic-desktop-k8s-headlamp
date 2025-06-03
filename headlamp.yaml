@@ -10,17 +10,6 @@ spec:
   selector:
     k8s-app: headlamp
 ---
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: managed-csi
-provisioner: disk.csi.azure.com
-parameters:
-  skuName: Premium_LRS # Use PremiumV2_LRS for Premium SSD v2. See other Sku names in https://learn.microsoft.com/en-us/azure/aks/azure-csi-disk-storage-provision#dynamically-provision-a-volume.
-  maxShares: "2"
-  cachingMode: None  # ReadOnly cache is not available for premium SSD with maxShares>1
-reclaimPolicy: Delete
----
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -32,8 +21,6 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  volumeMode: Block
-  storageClassName: managed-csi
 ---
 kind: Deployment
 apiVersion: apps/v1
@@ -50,20 +37,20 @@ spec:
       labels:
         k8s-app: headlamp
     spec:
-      initContainers:
-        - name: "headlamp-plugins"
-          image: ttl.sh/pic-desktop-k8s-headlamp
-          imagePullPolicy: Always
-          command:
-            - "/bin/sh"
-            - "-c"
-            - "mkdir -p /headlamp/plugins/aks && cp -r /plugins/* /headlamp/plugins/aks"
-          volumeMounts:
-            - name: "headlamp-plugins"
-              mountPath: "/headlamp/plugins"
+      # initContainers:
+      #   - name: "headlamp-plugins"
+      #     image: ttl.sh/pic-desktop-k8s-headlamp
+      #     imagePullPolicy: Always
+      #     command:
+      #       - "/bin/sh"
+      #       - "-c"
+      #       - "mkdir -p /headlamp/plugins/aks && cp -r /plugins/* /headlamp/plugins/aks"
+      #     volumeMounts:
+      #       - name: "headlamp-plugins"
+      #         mountPath: "/headlamp/plugins"
       containers:
         - name: headlamp
-          image: ghcr.io/headlamp-k8s/headlamp:latest
+          image: ttl.sh/pic-desktop-k8s-headlamp
           args:
             - "-in-cluster"
             - "-plugins-dir=/headlamp/plugins"
